@@ -12,8 +12,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.Locale;
-
 public final class EnderChestScannerClient implements ClientModInitializer {
     private static KeyMapping openKey;
     private static AbstractContainerMenu enderChestMenu;
@@ -46,14 +44,12 @@ public final class EnderChestScannerClient implements ClientModInitializer {
     }
 
     private static boolean isEnderChestScreen(Minecraft client) {
-        if (!(client.screen instanceof AbstractContainerScreen<?> screen)) return false;
-        if (!(client.player.containerMenu instanceof ChestMenu)) return false;
+        if (client.player == null || !(client.screen instanceof AbstractContainerScreen<?>)) return false;
+        if (!(client.player.containerMenu instanceof ChestMenu chestMenu)) return false;
 
-        String title = screen.getTitle().getString()
-            .toLowerCase(Locale.ROOT)
-            .replaceAll("[^a-z]", "");
-        // Covers vanilla English/German titles and server-side localized variants.
-        return title.contains("ender") || title.contains("truhe");
+        // Ender chests use the vanilla 3-row chest menu. Do not rely on the
+        // visible title: servers often replace/localize it with custom text.
+        return chestMenu.getRowCount() == 3;
     }
 
     public static void refresh() {
