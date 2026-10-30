@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "enderchestscanner",
+  "version": "${version}",
+  "name": "EnderChest Scanner",
+  "description": "Client-side scanner for visible Ender Chest slots and available shulker item data.",
+  "environment": "client",
+  "entrypoints": { "client": ["de.jokingsheet.enderchestscanner.EnderChestScannerClient"] },
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "minecraft": "1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
