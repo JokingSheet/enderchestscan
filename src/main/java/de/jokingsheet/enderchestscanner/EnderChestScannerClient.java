@@ -6,7 +6,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.EnderChestMenu;
 import org.lwjgl.glfw.GLFW;
 public final class EnderChestScannerClient implements ClientModInitializer {
     private static KeyMapping openKey;
@@ -22,7 +22,7 @@ public final class EnderChestScannerClient implements ClientModInitializer {
     }
     private static boolean isEnderChest(Minecraft client) {
         if (!(client.screen instanceof AbstractContainerScreen<?> screen)) return false;
-        if (!(client.player.containerMenu instanceof ChestMenu)) return false;
+        if (!(client.player.containerMenu instanceof EnderChestMenu)) return false;
         String title = screen.getTitle().getString().toLowerCase(java.util.Locale.ROOT);
         return title.contains("ender chest") || title.contains("endertruhe");
     }
