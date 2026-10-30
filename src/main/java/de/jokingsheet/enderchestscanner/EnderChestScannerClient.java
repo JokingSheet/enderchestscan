@@ -6,9 +6,10 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Locale;
@@ -27,10 +28,15 @@ public final class EnderChestScannerClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openKey.consumeClick()) {
-                if (client.player == null || client.screen == null) continue;
+                if (client.player == null) continue;
 
-                // Only accept the actual Ender Chest screen. Never scan player inventory slots.
-                if (!isEnderChestScreen(client)) continue;
+                if (!isEnderChestScreen(client)) {
+                    client.player.displayClientMessage(
+                        Component.literal("Open your Ender Chest first, then press Right Shift."),
+                        true
+                    );
+                    continue;
+                }
 
                 enderChestMenu = client.player.containerMenu;
                 ScannerData.scan(enderChestMenu);
@@ -43,16 +49,15 @@ public final class EnderChestScannerClient implements ClientModInitializer {
         if (!(client.screen instanceof AbstractContainerScreen<?> screen)) return false;
         if (!(client.player.containerMenu instanceof ChestMenu)) return false;
 
-        String title = screen.getTitle().getString().toLowerCase(Locale.ROOT);
-        return title.contains("ender chest")
-            || title.contains("endertruhe")
-            || title.contains("ender chest");
+        String title = screen.getTitle().getString()
+            .toLowerCase(Locale.ROOT)
+            .replaceAll("[^a-z]", "");
+        // Covers vanilla English/German titles and server-side localized variants.
+        return title.contains("ender") || title.contains("truhe");
     }
 
     public static void refresh() {
         Minecraft client = Minecraft.getInstance();
-        // Keep using the menu captured while the Ender Chest was open.
-        // If the server/menu changed, do not fall back to the player's inventory.
         if (client.player == null || enderChestMenu == null || client.player.containerMenu != enderChestMenu) {
             ScannerData.clear();
             enderChestMenu = null;
