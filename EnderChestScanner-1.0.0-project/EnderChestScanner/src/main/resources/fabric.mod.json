@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "enderchest_scanner",
+  "version": "${version}",
+  "name": "EnderChest Scanner",
+  "description": "Client-side Ender Chest and Shulker contents index. Reads only data synced to the client.",
+  "authors": ["EnderChest Scanner"],
+  "environment": "client",
+  "entrypoints": { "client": ["de.enderscanner.client.EnderChestScannerClient"] },
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "minecraft": "1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
