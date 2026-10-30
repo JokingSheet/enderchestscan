@@ -4,6 +4,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.client.input.MouseButtonEvent;
 import java.util.List;
 import java.util.Locale;
 public final class ScannerScreen extends Screen {
@@ -41,13 +42,14 @@ public final class ScannerScreen extends Screen {
         return ScannerData.entries().stream().filter(e -> e.displayStack().getHoverName().getString().toLowerCase(Locale.ROOT).contains(q)
             || net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(e.displayStack().getItem()).toString().contains(q)).toList();
     }
-    @Override public boolean mouseClicked(double x,double y,int button) {
+    @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubled) {
+        double x = event.x(), y = event.y();
         int l=width/2-160;
         if(x>=l+10&&x<=l+310&&y>=90&&y<height-100) {
             int i=scroll+(int)((y-90)/27); List<ScannerData.Entry> list=filtered();
             if(i>=0&&i<list.size()) selected=list.get(i);
         }
-        return super.mouseClicked(x,y,button);
+        return super.mouseClicked(event, doubled);
     }
     @Override public boolean isPauseScreen() { return false; }
 }
