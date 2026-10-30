@@ -16,9 +16,15 @@ public final class ScannerData {
         MutableEntry(ItemStack stack) { this.stack = stack.copyWithCount(1); }
     }
     private ScannerData() {}
+    public static void clear() {
+        ITEMS.clear();
+        shulkerCount = 0;
+        unreadableShulkerCount = 0;
+    }
     public static void scan(AbstractContainerMenu menu) {
-        ITEMS.clear(); shulkerCount = 0; unreadableShulkerCount = 0;
+        clear();
         if (menu == null || menu.slots.size() < 27) return;
+        // Ender Chest has exactly 27 storage slots at the beginning of ChestMenu.
         for (int slot = 0; slot < 27; slot++) {
             ItemStack stack = menu.slots.get(slot).getItem();
             if (stack.isEmpty()) continue;
@@ -43,8 +49,6 @@ public final class ScannerData {
         if (component == null) return null;
         try {
             Method m = component.getClass().getMethod("nonEmptyItems");
-            // The implementation class may not be public even though the method is.
-            // Make the method accessible before invoking it.
             if (!m.canAccess(component) && !m.trySetAccessible()) return null;
             Object result = m.invoke(component);
             if (result instanceof java.util.stream.Stream<?> stream)
