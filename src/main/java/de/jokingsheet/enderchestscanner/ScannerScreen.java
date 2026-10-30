@@ -16,15 +16,16 @@ public final class ScannerScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Refresh"), b -> EnderChestScannerClient.refresh()).bounds(width/2+122,42,70,20).build());
     }
     @Override public void render(GuiGraphics g, int mx, int my, float delta) {
-        // Avoid vanilla's per-frame blur: other client mods may already apply it.
         g.fill(0, 0, width, height, 0xC0101018);
         int l=width/2-160, t=22;
         g.fill(l,t,l+320,height-22,0xF0181A20); g.fill(l,t,l+320,t+3,0xFFFFC94A);
         g.drawCenteredString(font,"ENDER CHEST SCANNER",width/2,28,0xFFFFD36A);
         g.drawString(font,"Types: "+ScannerData.itemTypeCount()+"   Shulkers: "+ScannerData.shulkerCount(),l+12,68,0xFF72E08B);
+        if (ScannerData.unreadableShulkerCount() > 0)
+            g.drawString(font,"Shulkers without readable data: "+ScannerData.unreadableShulkerCount(),l+12,81,0xFFFF9A70);
         super.render(g,mx,my,delta);
-        List<ScannerData.Entry> list=filtered(); int y=94;
-        for(int i=scroll;i<Math.min(list.size(),scroll+8);i++) {
+        List<ScannerData.Entry> list=filtered(); int y=101;
+        for(int i=scroll;i<Math.min(list.size(),scroll+7);i++) {
             var e=list.get(i); g.fill(l+10,y-4,l+310,y+20,0xFF292D36);
             g.renderItem(e.displayStack(),l+16,y-2);
             g.drawString(font,e.displayStack().getHoverName(),l+40,y+2,0xFFE8E8E8);
@@ -37,6 +38,10 @@ public final class ScannerScreen extends Screen {
             int yy=height-50;
             for(var e:selected.shulkers().entrySet()) { g.drawString(font,"Shulker slot "+(e.getKey()+1)+": "+e.getValue(),l+22,yy,0xFFE8E8E8); yy+=12; }
         }
+        if (list.isEmpty() && ScannerData.shulkerCount() == 0)
+            g.drawString(font,"No Ender Chest items captured. Close and reopen the Ender Chest, then press Right Shift.",l+12,112,0xFFFF9A70);
+        else if (list.isEmpty() && ScannerData.unreadableShulkerCount() > 0)
+            g.drawString(font,"The server has not provided readable Shulker contents to the client.",l+12,112,0xFFFF9A70);
     }
     private List<ScannerData.Entry> filtered() {
         String q=search==null?"":search.getValue().toLowerCase(Locale.ROOT);
@@ -46,8 +51,8 @@ public final class ScannerScreen extends Screen {
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubled) {
         double x = event.x(), y = event.y();
         int l=width/2-160;
-        if(x>=l+10&&x<=l+310&&y>=90&&y<height-100) {
-            int i=scroll+(int)((y-90)/27); List<ScannerData.Entry> list=filtered();
+        if(x>=l+10&&x<=l+310&&y>=97&&y<height-100) {
+            int i=scroll+(int)((y-97)/27); List<ScannerData.Entry> list=filtered();
             if(i>=0&&i<list.size()) selected=list.get(i);
         }
         return super.mouseClicked(event, doubled);
