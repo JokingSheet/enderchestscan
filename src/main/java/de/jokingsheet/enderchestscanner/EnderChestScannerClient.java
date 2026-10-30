@@ -7,13 +7,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 public final class EnderChestScannerClient implements ClientModInitializer {
     private static KeyMapping openKey;
     private static boolean wasEnderChestOpen;
     @Override public void onInitializeClient() {
-        openKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.enderchestscanner.open", GLFW.GLFW_KEY_RIGHT_SHIFT, KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath("enderchestscanner", "main"))));
+        openKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.enderchestscanner.open", GLFW.GLFW_KEY_RIGHT_SHIFT, KeyMapping.Category.register(Identifier.fromNamespaceAndPath("enderchestscanner", "main"))));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openKey.consumeClick()) if (client.player != null) client.setScreen(new ScannerScreen());
             boolean open = isEnderChest(client);
