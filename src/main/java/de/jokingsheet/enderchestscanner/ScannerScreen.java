@@ -16,7 +16,8 @@ public final class ScannerScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Refresh"), b -> EnderChestScannerClient.refresh()).bounds(width/2+122,42,70,20).build());
     }
     @Override public void render(GuiGraphics g, int mx, int my, float delta) {
-        renderBackground(g, mx, my, delta);
+        // Avoid vanilla's per-frame blur: other client mods may already apply it.
+        g.fill(0, 0, width, height, 0xC0101018);
         int l=width/2-160, t=22;
         g.fill(l,t,l+320,height-22,0xF0181A20); g.fill(l,t,l+320,t+3,0xFFFFC94A);
         g.drawCenteredString(font,"ENDER CHEST SCANNER",width/2,28,0xFFFFD36A);
