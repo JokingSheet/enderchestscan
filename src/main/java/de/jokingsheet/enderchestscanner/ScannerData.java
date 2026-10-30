@@ -10,13 +10,14 @@ public final class ScannerData {
     public record Entry(ItemStack displayStack, int total, Map<Integer,Integer> shulkers, int outside) {}
     private static final Map<String, MutableEntry> ITEMS = new LinkedHashMap<>();
     private static int shulkerCount;
+    private static int unreadableShulkerCount;
     private static final class MutableEntry {
         ItemStack stack; int total; int outside; final Map<Integer,Integer> shulkers = new LinkedHashMap<>();
         MutableEntry(ItemStack stack) { this.stack = stack.copyWithCount(1); }
     }
     private ScannerData() {}
     public static void scan(AbstractContainerMenu menu) {
-        ITEMS.clear(); shulkerCount = 0;
+        ITEMS.clear(); shulkerCount = 0; unreadableShulkerCount = 0;
         if (menu == null || menu.slots.size() < 27) return;
         for (int slot = 0; slot < 27; slot++) {
             ItemStack stack = menu.slots.get(slot).getItem();
@@ -25,7 +26,8 @@ public final class ScannerData {
                 shulkerCount++;
                 Object component = stack.get(DataComponents.CONTAINER);
                 List<ItemStack> contents = readContents(component);
-                if (contents != null) for (ItemStack item : contents) add(item, slot, true);
+                if (contents == null) unreadableShulkerCount++;
+                else for (ItemStack item : contents) add(item, slot, true);
             } else add(stack, -1, false);
         }
     }
@@ -41,6 +43,9 @@ public final class ScannerData {
         if (component == null) return null;
         try {
             Method m = component.getClass().getMethod("nonEmptyItems");
+            // The implementation class may not be public even though the method is.
+            // Make the method accessible before invoking it.
+            if (!m.canAccess(component) && !m.trySetAccessible()) return null;
             Object result = m.invoke(component);
             if (result instanceof java.util.stream.Stream<?> stream)
                 return stream.filter(ItemStack.class::isInstance).map(ItemStack.class::cast).toList();
@@ -49,7 +54,7 @@ public final class ScannerData {
                 for (Object v : values) if (v instanceof ItemStack item) out.add(item);
                 return out;
             }
-        } catch (ReflectiveOperationException ignored) {}
+        } catch (ReflectiveOperationException | RuntimeException ignored) {}
         return null;
     }
     private static void add(ItemStack stack, int slot, boolean inside) {
@@ -64,4 +69,5 @@ public final class ScannerData {
     }
     public static int itemTypeCount() { return ITEMS.size(); }
     public static int shulkerCount() { return shulkerCount; }
+    public static int unreadableShulkerCount() { return unreadableShulkerCount; }
 }
