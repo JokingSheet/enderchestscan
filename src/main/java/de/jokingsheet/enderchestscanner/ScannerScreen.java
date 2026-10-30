@@ -5,16 +5,41 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.client.input.MouseButtonEvent;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 public final class ScannerScreen extends Screen {
-    private EditBox search; private int scroll; private ScannerData.Entry selected;
+    private EditBox search;
+    private Button sortButton;
+    private int scroll;
+    private int sortMode;
+    private ScannerData.Entry selected;
+
     public ScannerScreen() { super(Component.literal("ENDER CHEST SCANNER")); }
+
     @Override protected void init() {
-        search = new EditBox(font, width/2-115, 42, 230, 20, Component.literal("Search"));
-        search.setHint(Component.literal("Search items...")); addRenderableWidget(search);
-        addRenderableWidget(Button.builder(Component.literal("Refresh"), b -> EnderChestScannerClient.refresh()).bounds(width/2+122,42,70,20).build());
+        search = new EditBox(font, width/2-148, 42, 145, 20, Component.literal("Search"));
+        search.setHint(Component.literal("Search items..."));
+        addRenderableWidget(search);
+        sortButton = Button.builder(sortLabel(), b -> {
+            sortMode = (sortMode + 1) % 4;
+            scroll = 0;
+            b.setMessage(sortLabel());
+        }).bounds(width/2+2, 42, 90, 20).build();
+        addRenderableWidget(sortButton);
+        addRenderableWidget(Button.builder(Component.literal("Refresh"), b -> EnderChestScannerClient.refresh())
+            .bounds(width/2+97, 42, 65, 20).build());
     }
+
+    private Component sortLabel() {
+        return Component.literal(switch (sortMode) {
+            case 0 -> "Count: high";
+            case 1 -> "Count: low";
+            case 2 -> "Name: A-Z";
+            default -> "Name: Z-A";
+        });
+    }
+
     @Override public void render(GuiGraphics g, int mx, int my, float delta) {
         g.fill(0, 0, width, height, 0xC0101018);
         int l=width/2-160, t=22;
@@ -43,11 +68,23 @@ public final class ScannerScreen extends Screen {
         else if (list.isEmpty() && ScannerData.unreadableShulkerCount() > 0)
             g.drawString(font,"The server has not provided readable Shulker contents to the client.",l+12,112,0xFFFF9A70);
     }
+
     private List<ScannerData.Entry> filtered() {
         String q=search==null?"":search.getValue().toLowerCase(Locale.ROOT);
-        return ScannerData.entries().stream().filter(e -> e.displayStack().getHoverName().getString().toLowerCase(Locale.ROOT).contains(q)
-            || net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(e.displayStack().getItem()).toString().contains(q)).toList();
+        Comparator<ScannerData.Entry> comparator = switch (sortMode) {
+            case 0 -> Comparator.comparingInt(ScannerData.Entry::total).reversed()
+                .thenComparing(e -> e.displayStack().getHoverName().getString(), String.CASE_INSENSITIVE_ORDER);
+            case 1 -> Comparator.comparingInt(ScannerData.Entry::total)
+                .thenComparing(e -> e.displayStack().getHoverName().getString(), String.CASE_INSENSITIVE_ORDER);
+            case 2 -> Comparator.comparing(e -> e.displayStack().getHoverName().getString(), String.CASE_INSENSITIVE_ORDER);
+            default -> Comparator.comparing((ScannerData.Entry e) -> e.displayStack().getHoverName().getString(), String.CASE_INSENSITIVE_ORDER).reversed();
+        };
+        return ScannerData.entries().stream()
+            .filter(e -> e.displayStack().getHoverName().getString().toLowerCase(Locale.ROOT).contains(q)
+                || net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(e.displayStack().getItem()).toString().contains(q))
+            .sorted(comparator).toList();
     }
+
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubled) {
         double x = event.x(), y = event.y();
         int l=width/2-160;
@@ -57,5 +94,6 @@ public final class ScannerScreen extends Screen {
         }
         return super.mouseClicked(event, doubled);
     }
+
     @Override public boolean isPauseScreen() { return false; }
 }
