@@ -1,22 +1,21 @@
 package de.jokingsheet.enderchestscanner;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ChestMenu;
 import org.lwjgl.glfw.GLFW;
 
 public final class EnderChestScannerClient implements ClientModInitializer {
     private static KeyMapping openKey;
-    private static AbstractContainerMenu enderChestMenu;
+    private static AbstractContainerMenu scannedMenu;
 
     @Override
     public void onInitializeClient() {
@@ -26,62 +25,70 @@ public final class EnderChestScannerClient implements ClientModInitializer {
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath("enderchestscanner", "main"))
         ));
 
+        // This command always opens the last captured list. It does not require
+        // the container to still be open (chat can replace the visible screen).
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
             dispatcher.register(ClientCommandManager.literal("ecscan").executes(context -> {
                 Minecraft client = Minecraft.getInstance();
-                if (client.player == null || !(client.player.containerMenu instanceof ChestMenu chestMenu)
-                    || chestMenu.getRowCount() != 3) {
-                    if (client.player != null) {
-                        client.player.displayClientMessage(
-                            Component.literal("Open your Ender Chest first, then run /ecscan in chat."),
-                            false
-                        );
-                    }
-                    return 0;
+                if (client.player == null) return 0;
+                if (isContainerScreen(client)) {
+                    captureOpenContainer(client);
                 }
-
-                enderChestMenu = client.player.containerMenu;
-                ScannerData.scan(enderChestMenu);
                 client.setScreen(new ScannerScreen());
                 return 1;
             }))
         );
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (openKey.consumeClick()) {
-                if (client.player == null) continue;
+            if (client.player == null) return;
 
-                if (!isEnderChestScreen(client)) {
+            // Capture container contents automatically while a container GUI
+            // is open. This also supports server menus that are not vanilla ChestMenu.
+            if (isContainerScreen(client)) {
+                captureOpenContainer(client);
+            }
+
+            while (openKey.consumeClick()) {
+                if (isContainerScreen(client)) {
+                    captureOpenContainer(client);
+                }
+                if (scannedMenu == null) {
                     client.player.displayClientMessage(
-                        Component.literal("Open your Ender Chest first, then press Right Shift."),
+                        Component.literal("Noch keine Ender-Chest-Daten erfasst. Öffne zuerst deine Ender Chest."),
                         true
                     );
                     continue;
                 }
-
-                enderChestMenu = client.player.containerMenu;
-                ScannerData.scan(enderChestMenu);
                 client.setScreen(new ScannerScreen());
             }
         });
     }
 
-    private static boolean isEnderChestScreen(Minecraft client) {
-        if (client.player == null || !(client.screen instanceof AbstractContainerScreen<?>)) return false;
-        if (!(client.player.containerMenu instanceof ChestMenu chestMenu)) return false;
+    private static boolean isContainerScreen(Minecraft client) {
+        return client.screen instanceof AbstractContainerScreen<?>
+            && client.player != null
+            && client.player.containerMenu != client.player.inventoryMenu
+            && client.player.containerMenu.slots.size() >= 63;
+    }
 
-        // Ender chests use the vanilla 3-row chest menu. Do not rely on the
-        // visible title: servers often replace/localize it with custom text.
-        return chestMenu.getRowCount() == 3;
+    private static void captureOpenContainer(Minecraft client) {
+        if (client.player == null) return;
+        AbstractContainerMenu menu = client.player.containerMenu;
+        if (menu == client.player.inventoryMenu || menu.slots.size() < 63) return;
+        scannedMenu = menu;
+        ScannerData.scan(menu);
     }
 
     public static void refresh() {
         Minecraft client = Minecraft.getInstance();
-        if (client.player == null || enderChestMenu == null || client.player.containerMenu != enderChestMenu) {
+        if (client.player == null || scannedMenu == null) {
             ScannerData.clear();
-            enderChestMenu = null;
             return;
         }
-        ScannerData.scan(enderChestMenu);
+        // If the captured menu is still active, refresh it. Otherwise retain
+        // the last automatic snapshot instead of wiping the GUI.
+        if (client.player.containerMenu == scannedMenu) {
+            ScannerData.scan(scannedMenu);
+        }
     }
 }
